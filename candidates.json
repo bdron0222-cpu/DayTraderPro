@@ -1,12 +1,5 @@
 [
     {
-        "symbol": "2337.TW",
-        "volume": 113645.0,
-        "stop_loss": 168.5,
-        "reference_close": 161.5,
-        "shadow_ratio": 1.8
-    },
-    {
         "symbol": "2399.TW",
         "volume": 46153.0,
         "stop_loss": 57.5,
@@ -14,24 +7,17 @@
         "shadow_ratio": 1.67
     },
     {
-        "symbol": "3019.TW",
-        "volume": 22755.0,
-        "stop_loss": 168.5,
-        "reference_close": 158.5,
-        "shadow_ratio": 1.86
-    },
-    {
-        "symbol": "3406.TW",
-        "volume": 7042.0,
-        "stop_loss": 780.0,
-        "reference_close": 722.0,
-        "shadow_ratio": 2.41
-    },
-    {
         "symbol": "3504.TW",
         "volume": 15339.0,
         "stop_loss": 97.8,
         "reference_close": 86.5,
         "shadow_ratio": 2.77
+    },
+    {
+        "symbol": "5011.TWO",
+        "volume": 5261.0,
+        "stop_loss": 21.6,
+        "reference_close": 20.6,
+        "shadow_ratio": 0.82
     }
 ]
