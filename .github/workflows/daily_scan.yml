@@ -8,12 +8,12 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 必須要這行
+      contents: write 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       
@@ -27,12 +27,20 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add candidates.json
           
-          # 檢查是否有變更，有的話才 commit 和 push
-          if git diff --quiet && git diff --staged --quiet; then
-            echo "No changes, skipping push."
+          # 檢查檔案是否存在
+          if [ -f "candidates.json" ]; then
+            git add candidates.json
           else
-            git commit -m "Update candidates.json"
-            git push
+            echo "candidates.json 不存在，跳過。"
+            exit 0
           fi
+
+          # 檢查是否有實際變更，沒有變更就不執行 commit
+          if git diff --cached --quiet; then
+            echo "沒有資料變更，無需推送。"
+            exit 0
+          fi
+
+          git commit -m "Update candidates.json"
+          git push origin main
