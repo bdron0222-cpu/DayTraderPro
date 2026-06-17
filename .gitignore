@@ -2,5 +2,5 @@
 __pycache__/
 *.pyc
 .env
-candidates.json
+#candidates.json
 stocks.json
