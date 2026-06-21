@@ -1,46 +1,43 @@
 name: Daily Stock Scan
+
 on:
   schedule:
-    - cron: '0 6 * * *' 
-  workflow_dispatch: 
+    # 設定 UTC 時間 07:00 (對應台灣時間下午 3:00)
+    - cron: '0 7 * * *' 
+  workflow_dispatch: # 允許你手動測試
 
 jobs:
   scan:
     runs-on: ubuntu-latest
     permissions:
-      contents: write 
+      contents: write # 允許 GitHub Action 將更新後的檔案推回儲存庫
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-      
+
+      # [新增] 檢查並更新股票清單 (如果超過 90 天)
+      - name: Update stock list if needed
+        run: python check_and_update_stocks.py
+
       - name: Install dependencies
         run: pip install -r requirements.txt
-      
-      - name: Run Scanner
+
+      # 執行掃描
+      - name: Run scanner
         run: python main.py
-      
-      - name: Commit and Push results
+
+      # 自動 Commit 更新後的結果檔案與清單
+      - name: Commit results
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          # 檢查檔案是否存在
-          if [ -f "candidates.json" ]; then
-            git add candidates.json
-          else
-            echo "candidates.json 不存在，跳過。"
-            exit 0
-          fi
-
-          # 檢查是否有實際變更，沒有變更就不執行 commit
-          if git diff --cached --quiet; then
-            echo "沒有資料變更，無需推送。"
-            exit 0
-          fi
-
-          git commit -m "Update candidates.json"
-          git push origin main
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          # 將所有生成的資料檔加入儲存庫
+          git add results.csv results.json stocks.json
+          # 如果有變更才 commit，避免沒有資料更新時產生報錯
+          git commit -m "Update stock data: $(date +'%Y-%m-%d')" || exit 0
+          git push
