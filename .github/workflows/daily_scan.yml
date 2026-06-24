@@ -2,14 +2,15 @@ name: Daily Stock Scan
 
 on:
   schedule:
+    # 設定 UTC 時間 06:50 (對應台灣時間下午 2:50)
     - cron: '50 6 * * *' 
-  workflow_dispatch:
+  workflow_dispatch: # 允許手動測試
 
 jobs:
   scan:
     runs-on: ubuntu-latest
     permissions:
-      contents: write 
+      contents: write # 允許 GitHub Action 將更新後的檔案推回儲存庫
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,24 +20,37 @@ jobs:
         with:
           python-version: '3.9'
 
-      # [修正順序] 先安裝依賴，才能執行 Python 腳本
+      # 先安裝所有依賴，避免 ModuleNotFoundError
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # 再執行更新腳本
+      # 檢查並更新股票清單
       - name: Update stock list if needed
         run: python check_and_update_stocks.py
 
-      # 最後執行掃描
-      - name: Run scanner
-        run: |
-          python main.py --strategy shooting_star --output candidates_shooting_star.json
-          python main.py --strategy ma_breakdown --output candidates_ma_breakdown.json
+      # 執行掃描：射擊之星
+      - name: Run Shooting Star Scanner
+        run: python main.py --strategy shooting_star --output candidates_shooting_star.json
 
+      # 執行掃描：均線破位
+      - name: Run MA Breakdown Scanner
+        run: python main.py --strategy ma_breakdown --output candidates_ma_breakdown.json
+
+      # 自動 Commit 更新後的結果檔案與清單
       - name: Commit results
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add candidates_shooting_star.json candidates_ma_breakdown.json stocks.json update_metadata.json
+          
+          # 檢查檔案是否存在，存在才 add (避免檔案不存在導致錯誤)
+          if [ -f candidates_shooting_star.json ]; then git add candidates_shooting_star.json; fi
+          if [ -f candidates_ma_breakdown.json ]; then git add candidates_ma_breakdown.json; fi
+          
+          # 將必定存在的檔案加入儲存庫
+          git add stocks.json update_metadata.json
+          
+          # 如果有變更才 commit，避免沒有資料更新時產生報錯
           git commit -m "Update stock data: $(date +'%Y-%m-%d')" || exit 0
+          
+          # 推送到儲存庫
           git push
