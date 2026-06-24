@@ -2,8 +2,8 @@ name: Daily Stock Scan
 
 on:
   schedule:
-    # 設定 UTC 時間 07:00 (對應台灣時間下午 3:00)
-    - cron: '0 7 * * *' 
+    # 改為 06:50 UTC (台灣時間 14:50)，避開整點排隊延遲
+    - cron: '50 6 * * *' 
   workflow_dispatch: # 允許你手動測試
 
 jobs:
@@ -20,24 +20,32 @@ jobs:
         with:
           python-version: '3.9'
 
-      # [新增] 檢查並更新股票清單 (如果超過 90 天)
+      # 檢查並更新股票清單
       - name: Update stock list if needed
         run: python check_and_update_stocks.py
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # 執行掃描
-      - name: Run scanner
-        run: python main.py
+      # [新增] 執行射擊之星掃描
+      - name: Run Shooting Star Scanner
+        run: python main.py --strategy shooting_star --output candidates_shooting_star.json
 
-      # 自動 Commit 更新後的結果檔案與清單
+      # [新增] 執行均線破位掃描
+      - name: Run MA Breakdown Scanner
+        run: python main.py --strategy ma_breakdown --output candidates_ma_breakdown.json
+
+      # 自動 Commit 更新後的結果與清單
       - name: Commit results
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          # 將所有生成的資料檔加入儲存庫
-          git add results.csv results.json stocks.json
-          # 如果有變更才 commit，避免沒有資料更新時產生報錯
+          
+          # 將兩個策略的結果檔、清單檔與 metadata 全部加入儲存庫
+          git add candidates_shooting_star.json candidates_ma_breakdown.json stocks.json update_metadata.json
+          
+          # 如果有變更才 commit
           git commit -m "Update stock data: $(date +'%Y-%m-%d')" || exit 0
+          
+          # 推送到儲存庫
           git push

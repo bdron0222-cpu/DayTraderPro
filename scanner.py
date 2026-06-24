@@ -1,46 +1,52 @@
 import pandas as pd
 
-def check_bearish_shooting_star(df, period=10):
-    """
-    優化版選股邏輯：
-    1. 形態濾網：符合射擊之星型態
-    2. 成交量濾網：成交量需大於過去 5 日平均 (爆量才具備出貨意義)
-    3. 缺口濾網：開盤需高於昨日收盤 (代表主力嘗試做多後失敗)
-    """
-    # 處理多層索引 (確保資料結構一致)
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
+# --- 通用指標計算 ---
+def calculate_rsi(series, period=14):
+    delta = series.diff()
+    avg_gain = (delta.where(delta > 0, 0)).ewm(com=period - 1, min_periods=period).mean()
+    avg_loss = (-delta.where(delta < 0, 0)).ewm(com=period - 1, min_periods=period).mean()
+    rs = avg_gain / avg_loss
+    return 100 - (100 / (1 + rs))
 
-    if df.empty or len(df) < period + 1:
-        return None
-
-    last = df.iloc[-1]
-    prev = df.iloc[-2] # 昨日收盤價
-
-    # 1. 形態濾網：短期高點 + 綠K + 長上影線
-    is_high = last['High'] == df['High'].rolling(window=period).max().iloc[-1]
-    is_green = last['Close'] < last['Open']
+# --- 策略：射擊之星 ---
+def check_bearish_shooting_star(df):
+    if df.empty or len(df) < 30: return None
+    last, prev = df.iloc[-1], df.iloc[-2]
     
+    is_high = last['High'] == df['High'].rolling(window=10).max().iloc[-1]
+    is_green = last['Close'] < last['Open']
     upper_shadow = last['High'] - max(last['Open'], last['Close'])
     body = abs(last['Open'] - last['Close'])
-    # 確保有實體，避免除以 0；上影線 > 實體 0.5 倍
-    has_long_shadow = (body > 0) and (upper_shadow > (body * 0.5))
-
-    # --- 【優化 1】：新增成交量濾網 (Volume Spike) ---
-    # 爆量才代表有主力在「出貨」，冷門股的射擊之星沒有參考價值
-    avg_volume = df['Volume'].rolling(window=5).mean().iloc[-1]
-    is_volume_spike = last['Volume'] > (avg_volume * 1.05) # 當日成交量 > 5日平均的 1.05 倍
-
-    # --- 【優化 2】：新增跳空濾網 (Gap Up) ---
-    # 若開盤沒高於昨日收盤，不算主力「強勢進攻後失敗」，就不符合射擊之星原意
-    is_gap_up = last['Open'] > prev['Close']
-
-    # 綜合判斷 (三個濾網全過才進場)
-    if is_high and is_green and has_long_shadow and is_volume_spike and is_gap_up:
-        return {
-            "stop_loss": round(last['High'], 2),
-            "reference_close": round(last['Close'], 2),
-            "shadow_ratio": round(upper_shadow / body, 2)
-        }
     
+    is_gap_up = last['Open'] > prev['Close']
+    rsi = calculate_rsi(df['Close'], 14).iloc[-1]
+    vol_max = df['Volume'].rolling(window=10).max().iloc[-2]
+    
+    if is_high and is_green and (upper_shadow > body * 0.5) and is_gap_up and (rsi > 70) and (last['Volume'] < vol_max):
+        return {"stop_loss": round(last['High'], 2), "reference_close": round(last['Close'], 2), "shadow_ratio": round(upper_shadow/body, 2), "rsi": round(rsi, 2)}
+    return None
+
+# --- 策略：均線破位 (MA Breakdown) ---
+def check_ma_breakdown(df):
+    if df.empty or len(df) < 25: return None
+    
+    ma20 = df['Close'].rolling(window=20).mean()
+    last_close = df['Close'].iloc[-1]
+    prev_close = df['Close'].iloc[-2]
+    
+    # 跌破 20 日均線
+    is_breaking_ma20 = (prev_close > ma20.iloc[-2]) and (last_close < ma20.iloc[-1])
+    # RSI 動能轉弱
+    rsi = calculate_rsi(df['Close'], 14).iloc[-1]
+    
+    if is_breaking_ma20 and rsi < 50:
+        return {"stop_loss": round(ma20.iloc[-1], 2), "reference_close": round(last_close, 2), "shadow_ratio": 0, "rsi": round(rsi, 2)}
+    return None
+
+# --- 策略分派器 (Main Entry Point) ---
+def scan_stock(df, strategy):
+    if strategy == "shooting_star":
+        return check_bearish_shooting_star(df)
+    elif strategy == "ma_breakdown":
+        return check_ma_breakdown(df)
     return None

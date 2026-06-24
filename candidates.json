@@ -1,23 +1,44 @@
 [
     {
-        "symbol": "2399.TW",
-        "volume": 46153.0,
-        "stop_loss": 57.5,
-        "reference_close": 51.9,
-        "shadow_ratio": 1.67
+        "symbol": "3437.TW",
+        "volume": 2680.0,
+        "stop_loss": 24.4,
+        "reference_close": 23.25,
+        "shadow_ratio": 10.5
     },
     {
-        "symbol": "3504.TW",
-        "volume": 15339.0,
-        "stop_loss": 97.8,
-        "reference_close": 86.5,
-        "shadow_ratio": 2.77
+        "symbol": "3591.TW",
+        "volume": 20231.0,
+        "stop_loss": 29.0,
+        "reference_close": 27.3,
+        "shadow_ratio": 2.4
     },
     {
-        "symbol": "5011.TWO",
-        "volume": 5261.0,
-        "stop_loss": 21.6,
-        "reference_close": 20.6,
-        "shadow_ratio": 0.82
+        "symbol": "7799.TW",
+        "volume": 2455.0,
+        "stop_loss": 453.0,
+        "reference_close": 413.0,
+        "shadow_ratio": 1.35
+    },
+    {
+        "symbol": "3066.TWO",
+        "volume": 4122.0,
+        "stop_loss": 25.4,
+        "reference_close": 23.65,
+        "shadow_ratio": 0.94
+    },
+    {
+        "symbol": "4128.TWO",
+        "volume": 1516.0,
+        "stop_loss": 15.4,
+        "reference_close": 15.15,
+        "shadow_ratio": 4.0
+    },
+    {
+        "symbol": "4716.TWO",
+        "volume": 10951.0,
+        "stop_loss": 24.0,
+        "reference_close": 22.0,
+        "shadow_ratio": 1.35
     }
 ]
