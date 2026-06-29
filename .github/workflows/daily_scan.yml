@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: '3.9'
 
-      # 1. 先安裝套件 (這一步最關鍵，沒先裝會報錯)
+      # 1. 先安裝套件
       - name: Install dependencies
         run: pip install -r requirements.txt
 
@@ -36,11 +36,14 @@ jobs:
       - name: Run MA Breakdown Scanner
         run: python main.py --strategy ma_breakdown --output candidates_ma_breakdown.json
 
-      # 5. 安全地提交結果
+      # 5. 安全地提交結果與心跳檔案
       - name: Commit results
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
+          
+          # 【心跳機制】：產生或更新一個時間戳記檔案，確保每天都有變動，防止倉庫被判定為閒置
+          echo "Last run: $(date)" > heartbeat.txt
           
           # 檢查檔案是否存在，存在才 add (避免找不到檔案報錯)
           [ -f candidates_shooting_star.json ] && git add candidates_shooting_star.json
@@ -48,7 +51,10 @@ jobs:
           [ -f stocks.json ] && git add stocks.json
           [ -f update_metadata.json ] && git add update_metadata.json
           
-          # 如果有變更才 commit，避免沒有資料更新時產生報錯
+          # 加入心跳檔案
+          git add heartbeat.txt
+          
+          # 如果有變更才 commit，由於每天都會更新 heartbeat.txt，這保證了一定會 commit
           git commit -m "Update stock data: $(date +'%Y-%m-%d')" || exit 0
           
           # 推送到儲存庫
